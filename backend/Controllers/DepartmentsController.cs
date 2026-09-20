@@ -21,18 +21,19 @@ namespace Backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDepartments()
         {
-            var list = await _context.Departments
-                .Select(d => new DepartmentSummaryDto
-                {
-                    Id = d.Id,
-                    Name = d.Name,
-                    Code = d.Code,
-                    Budget = d.Budget,
-                    ManagerName = d.ManagerName,
-                    EmployeeCount = _context.Employees.Count(e => e.DepartmentId == d.Id),
-                    TotalSalaryExpense = _context.Employees.Where(e => e.DepartmentId == d.Id).Sum(e => e.Salary)
-                })
-                .ToListAsync();
+            var depts = await _context.Departments.ToListAsync();
+            var emps = await _context.Employees.ToListAsync();
+
+            var list = depts.Select(d => new DepartmentSummaryDto
+            {
+                Id = d.Id,
+                Name = d.Name,
+                Code = d.Code,
+                Budget = d.Budget,
+                ManagerName = d.ManagerName,
+                EmployeeCount = emps.Count(e => e.DepartmentId == d.Id),
+                TotalSalaryExpense = emps.Where(e => e.DepartmentId == d.Id).Sum(e => e.Salary)
+            }).ToList();
 
             return Ok(list);
         }
@@ -40,18 +41,23 @@ namespace Backend.Controllers
         [HttpGet("growth-metrics")]
         public async Task<IActionResult> GetGrowthMetrics()
         {
-            var departmentMetrics = await _context.Departments
-                .Select(d => new
+            var depts = await _context.Departments.ToListAsync();
+            var emps = await _context.Employees.ToListAsync();
+
+            var departmentMetrics = depts.Select(d =>
+            {
+                var deptEmps = emps.Where(e => e.DepartmentId == d.Id).ToList();
+                return new
                 {
                     d.Id,
                     d.Name,
                     d.Code,
-                    Headcount = _context.Employees.Count(e => e.DepartmentId == d.Id),
+                    Headcount = deptEmps.Count,
                     Budget = d.Budget,
-                    SalaryExpense = _context.Employees.Where(e => e.DepartmentId == d.Id).Sum(e => e.Salary),
-                    AvgPerformance = _context.Employees.Where(e => e.DepartmentId == d.Id).Average(e => (double?)e.PerformanceScore) ?? 4.0
-                })
-                .ToListAsync();
+                    SalaryExpense = deptEmps.Sum(e => e.Salary),
+                    AvgPerformance = deptEmps.Any() ? deptEmps.Average(e => e.PerformanceScore) : 4.0
+                };
+            }).ToList();
 
             return Ok(departmentMetrics);
         }

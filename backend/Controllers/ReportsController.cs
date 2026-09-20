@@ -23,11 +23,11 @@ namespace Backend.Controllers
             var totalEmployees = await _context.Employees.CountAsync();
             var activeEmployees = await _context.Employees.CountAsync(e => e.Status == "Active");
             var onLeaveEmployees = await _context.Employees.CountAsync(e => e.Status == "OnLeave");
-            var totalPayroll = await _context.Employees.SumAsync(e => e.Salary);
+            var salaries = await _context.Employees.Select(e => e.Salary).ToListAsync();
+            var totalPayroll = salaries.Sum();
             var totalDepartments = await _context.Departments.CountAsync();
             var avgPerformance = await _context.Employees.AverageAsync(e => (double?)e.PerformanceScore) ?? 4.0;
 
-            // Hiring Trend Data (Simulated by month based on HireDate)
             var hiringTrend = await _context.Employees
                 .GroupBy(e => new { e.HireDate.Year, e.HireDate.Month })
                 .Select(g => new
